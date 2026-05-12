@@ -41,11 +41,11 @@ html, body {
 /* ─── PANTALLAS ─────────────────────────── */
 .screen {
   position:absolute; inset:0;
-  display:none; flex-direction:column;
+  display:none !important; flex-direction:column;
   align-items:center; justify-content:center;
   overflow:hidden;
 }
-.screen.active { display:flex; }
+.screen.active { display:flex !important; }
 
 /* ─── CANVAS FONDO ──────────────────────── */
 #bgCanvas {
@@ -149,6 +149,9 @@ html, body {
   background:radial-gradient(ellipse at 30% 20%, rgba(0,60,30,0.5) 0%, transparent 60%),
              radial-gradient(ellipse at 70% 80%, rgba(0,40,60,0.4) 0%, transparent 60%),
              var(--deep-black);
+  overflow-y:auto;
+  justify-content:flex-start;
+  padding-top:30px;
 }
 .menu-header {
   text-align:center; margin-bottom:30px;
@@ -653,9 +656,11 @@ function updateGlobalRecord() {
 
 // ─── PANTALLAS ──────────────────────────────────────────
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+  });
   const el = document.getElementById(id);
-  if (el) { el.classList.add('active'); el.style.display = 'flex'; }
+  if (el) el.classList.add('active');
 }
 
 // ─── FONDO ANIMADO GLOBAL ───────────────────────────────
@@ -817,7 +822,7 @@ let recycState = {};
 
 function startRecycling() {
   showScreen('recyclingGame');
-  resetRecycling();
+  requestAnimationFrame(() => resetRecycling());
 }
 
 function resetRecycling() {
@@ -1047,15 +1052,19 @@ const RACER_NEGATIVES = ['🗑️','🛢️','💨','☁️','🏭','🚬'];
 
 function startRacer() {
   showScreen('racerGame');
-  setupRacerCanvas();
-  resetRacer();
+  requestAnimationFrame(() => {
+    setupRacerCanvas();
+    resetRacer();
+  });
 }
 
 function setupRacerCanvas() {
   const canvas = document.getElementById('racerCanvas');
   const area = document.getElementById('racerArea');
-  canvas.width = area.clientWidth || window.innerWidth;
-  canvas.height = (area.clientHeight || window.innerHeight) - 20;
+  canvas.width = area.offsetWidth || window.innerWidth;
+  canvas.height = (area.offsetHeight || window.innerHeight) - 20;
+  if (canvas.width < 10) canvas.width = window.innerWidth;
+  if (canvas.height < 10) canvas.height = window.innerHeight - 80;
 }
 
 function resetRacer() {
@@ -1258,15 +1267,19 @@ const DODGE_POWERUPS = ['⭐','🛡️','⚡','🌿'];
 
 function startDodge() {
   showScreen('dodgeGame');
-  setupDodgeCanvas();
-  resetDodge();
+  requestAnimationFrame(() => {
+    setupDodgeCanvas();
+    resetDodge();
+  });
 }
 
 function setupDodgeCanvas() {
   const canvas = document.getElementById('dodgeCanvas');
   const area = document.getElementById('dodgeArea');
-  canvas.width = area.clientWidth || window.innerWidth;
-  canvas.height = area.clientHeight || window.innerHeight - 60;
+  canvas.width = area.offsetWidth || window.innerWidth;
+  canvas.height = area.offsetHeight || window.innerHeight - 60;
+  if (canvas.width < 10) canvas.width = window.innerWidth;
+  if (canvas.height < 10) canvas.height = window.innerHeight - 80;
 }
 
 function resetDodge() {
@@ -1518,15 +1531,19 @@ const REV_NEGATIVES = ['🛢️','💨','☁️','🗑️','🔥','💀','⚠️
 
 function startReverse() {
   showScreen('reverseDodgeGame');
-  setupRevCanvas();
-  resetReverse();
+  requestAnimationFrame(() => {
+    setupRevCanvas();
+    resetReverse();
+  });
 }
 
 function setupRevCanvas() {
   const canvas = document.getElementById('revCanvas');
   const area = document.getElementById('revArea');
-  canvas.width = area.clientWidth || window.innerWidth;
-  canvas.height = area.clientHeight || window.innerHeight - 60;
+  canvas.width = area.offsetWidth || window.innerWidth;
+  canvas.height = area.offsetHeight || window.innerHeight - 60;
+  if (canvas.width < 10) canvas.width = window.innerWidth;
+  if (canvas.height < 10) canvas.height = window.innerHeight - 80;
 }
 
 function resetReverse() {
@@ -1733,9 +1750,6 @@ document.getElementById('revBack').addEventListener('click', () => {
   document.onkeydown=null; document.onkeyup=null;
   buildMenu(); showScreen('mainMenu');
 });
-
-// ─── MENÚ BACK BUTTONS ──────────────────────────────────
-document.getElementById('recycBack').addEventListener('click', () => {});
 
 // ═══════════════════════════════════════════════════════
 // UTILIDADES

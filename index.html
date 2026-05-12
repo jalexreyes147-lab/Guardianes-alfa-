@@ -2,87 +2,91 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gen Alfa: Eco en Ruta</title>
+    <title>Gen Alfa: Eco en Ruta - Juego Completo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <style>
-        body {
-            margin: 0;
-            background: #0a0a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: white;
-            font-family: sans-serif;
-            overflow: hidden;
-        }
-        #game-container {
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
-            border-radius: 10px;
-            overflow: hidden;
-        }
+        body { margin: 0; background: #0a0a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        #game-container { border: 2px solid #00ff88; border-radius: 10px; }
     </style>
 </head>
 <body>
     <div id="game-container"></div>
 
     <script>
-        class MainScene extends Phaser.Scene {
-            constructor() {
-                super('MainScene');
-            }
+        // ESCENA DE SELECCIÓN DE PERSONAJE
+        class SelectionScene extends Phaser.Scene {
+            constructor() { super('SelectionScene'); }
 
-            preload() {
-                // No cargamos imágenes externas para evitar errores de archivos faltantes
+            create() {
+                this.add.text(400, 100, 'SELECCIONA TU ECO-HÉROE', { fontSize: '40px', fill: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5);
+                
+                const heroes = [
+                    { name: 'TERRA', color: 0x2ecc71, x: 200, desc: '+ Vida' },
+                    { name: 'NOVA', color: 0x3498db, x: 330, desc: '+ Velocidad' },
+                    { name: 'AURA', color: 0x9b59b6, x: 460, desc: '+ Salto' },
+                    { name: 'ECO-BOT', color: 0xf1c40f, x: 590, desc: '+ Escudo' }
+                ];
+
+                heroes.forEach(h => {
+                    let card = this.add.rectangle(h.x, 300, 100, 150, h.color).setInteractive({ useHandCursor: true });
+                    this.add.text(h.x, 390, h.name, { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+                    this.add.text(h.x, 415, h.desc, { fontSize: '14px', fill: '#aaa' }).setOrigin(0.5);
+
+                    card.on('pointerdown', () => {
+                        this.scene.start('PlayScene', { heroColor: h.color, heroName: h.name });
+                    });
+                    
+                    card.on('pointerover', () => card.setStrokeStyle(4, 0xffffff));
+                    card.on('pointerout', () => card.setStrokeStyle(0));
+                });
+            }
+        }
+
+        // ESCENA DE JUEGO (MINIJUEGO DE PLATAFORMAS)
+        class PlayScene extends Phaser.Scene {
+            constructor() { super('PlayScene'); }
+
+            init(data) {
+                this.selectedColor = data.heroColor;
+                this.heroName = data.heroName;
             }
 
             create() {
-                // Fondo con degradado
-                this.add.rectangle(400, 300, 800, 600, 0x0a0a1a);
-                
-                // Título
-                this.add.text(400, 150, 'GEN ALFA: ECO EN RUTA', {
-                    fontSize: '48px',
-                    fill: '#00ff88',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
+                // Suelo y Plataformas
+                this.platforms = this.physics.add.staticGroup();
+                for (let i = 0; i < 800; i += 40) {
+                    this.platforms.add(this.add.rectangle(i, 580, 40, 40, 0x333333));
+                }
+                this.platforms.add(this.add.rectangle(400, 400, 200, 20, 0x00ff88));
+                this.platforms.add(this.add.rectangle(150, 250, 200, 20, 0x00ff88));
 
-                // Instrucciones
-                this.add.text(400, 300, 'Usa las FLECHAS para moverte\ny saltar los obstáculos', {
-                    fontSize: '24px',
-                    fill: '#ffffff',
-                    align: 'center'
-                }).setOrigin(0.5);
-
-                // Botón de inicio
-                const btn = this.add.rectangle(400, 450, 200, 60, 0x00ff88)
-                    .setInteractive({ useHandCursor: true });
-                
-                this.add.text(400, 450, '¡JUGAR!', {
-                    fontSize: '28px',
-                    fill: '#000000',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
-
-                // Personaje de prueba (un cuadrado verde)
-                this.player = this.add.rectangle(100, 550, 40, 40, 0x00ff88);
+                // Jugador (El Avatar seleccionado)
+                this.player = this.add.rectangle(100, 450, 30, 50, this.selectedColor);
                 this.physics.add.existing(this.player);
                 this.player.body.setCollideWorldBounds(true);
+                this.physics.add.collider(this.player, this.platforms);
 
-                // Plataforma de suelo
-                const platforms = this.physics.add.staticGroup();
-                const ground = this.add.rectangle(400, 580, 800, 40, 0x333333);
-                platforms.add(ground);
-                this.physics.add.collider(this.player, platforms);
+                // HUD (Información en pantalla)
+                this.add.text(20, 20, 'Héroe: ' + this.heroName, { fontSize: '20px', fill: '#00ff88' });
+                this.scoreText = this.add.text(600, 20, 'Eco-Puntos: 0', { fontSize: '20px', fill: '#fff' });
+                this.score = 0;
+
+                // Objetos recolectables (Basura para reciclar)
+                this.items = this.physics.add.group();
+                for (let i = 0; i < 5; i++) {
+                    let item = this.add.circle(Phaser.Math.Between(100, 700), 0, 10, 0xffffff);
+                    this.items.add(item);
+                    item.body.setBounceY(0.4);
+                }
+                this.physics.add.collider(this.items, this.platforms);
+                this.physics.add.overlap(this.player, this.items, (p, item) => {
+                    item.destroy();
+                    this.score += 10;
+                    this.scoreText.setText('Eco-Puntos: ' + this.score);
+                });
 
                 // Controles
                 this.cursors = this.input.keyboard.createCursorKeys();
-
-                btn.on('pointerdown', () => {
-                    btn.setFillStyle(0xffffff);
-                    this.add.text(400, 220, 'Iniciando misión...', { fill: '#00ff88' }).setOrigin(0.5);
-                });
             }
 
             update() {
@@ -95,21 +99,20 @@
                 }
 
                 if (this.cursors.up.isDown && this.player.body.touching.down) {
-                    this.player.body.setVelocityY(-400);
+                    this.player.body.setVelocityY(-450);
                 }
             }
         }
 
+        // CONFIGURACIÓN GLOBAL
         const config = {
             type: Phaser.AUTO,
             width: 800,
             height: 600,
             parent: 'game-container',
-            physics: {
-                default: 'arcade',
-                arcade: { gravity: { y: 800 }, debug: false }
-            },
-            scene: MainScene
+            backgroundColor: '#0a0a2a',
+            physics: { default: 'arcade', arcade: { gravity: { y: 800 } } },
+            scene: [SelectionScene, PlayScene]
         };
 
         new Phaser.Game(config);

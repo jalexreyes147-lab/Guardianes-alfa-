@@ -1,121 +1,1838 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Gen Alfa: Eco en Ruta - Juego Completo</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
-    <style>
-        body { margin: 0; background: #0a0a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        #game-container { border: 2px solid #00ff88; border-radius: 10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Gen Alpha Eco</title>
+<style>
+/* ═══════════════════════════════════════════
+   GEN ALPHA ECO — ESTILOS GLOBALES
+═══════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+:root {
+  --neon-green: #00ff88;
+  --neon-cyan: #00eeff;
+  --neon-lime: #aaff00;
+  --deep-black: #020a06;
+  --panel-bg: rgba(0,20,10,0.85);
+  --card-bg: rgba(0,40,20,0.7);
+  --border-glow: rgba(0,255,136,0.4);
+  --text-main: #e0ffe8;
+  --text-dim: #7fbf9a;
+  --danger: #ff3355;
+  --warn: #ffaa00;
+  --gold: #ffd700;
+  --font-head: 'Orbitron', monospace;
+  --font-body: 'Rajdhani', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; touch-action:manipulation; }
+
+html, body {
+  width:100%; height:100%;
+  overflow:hidden;
+  background:var(--deep-black);
+  font-family:var(--font-body);
+  color:var(--text-main);
+  user-select:none;
+}
+
+/* ─── PANTALLAS ─────────────────────────── */
+.screen {
+  position:absolute; inset:0;
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.screen.active { display:flex; }
+
+/* ─── CANVAS FONDO ──────────────────────── */
+#bgCanvas {
+  position:fixed; top:0; left:0;
+  width:100%; height:100%;
+  z-index:0; pointer-events:none;
+}
+
+/* ─── LOADER ─────────────────────────────── */
+#loader {
+  z-index:200;
+  background:var(--deep-black);
+  flex-direction:column; gap:20px;
+}
+.loader-ring {
+  width:80px; height:80px;
+  border:3px solid rgba(0,255,136,0.15);
+  border-top-color:var(--neon-green);
+  border-right-color:var(--neon-cyan);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+.loader-text {
+  font-family:var(--font-head);
+  font-size:clamp(14px,3vw,18px);
+  color:var(--neon-green);
+  letter-spacing:6px;
+  animation:pulse 1.5s ease-in-out infinite;
+}
+.loader-bar-wrap {
+  width:200px; height:4px;
+  background:rgba(255,255,255,0.1);
+  border-radius:2px; overflow:hidden;
+}
+.loader-bar {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,var(--neon-green),var(--neon-cyan));
+  border-radius:2px;
+  transition:width 0.1s;
+  box-shadow:0 0 10px var(--neon-green);
+}
+
+/* ─── PANTALLA INICIAL ───────────────────── */
+#splash {
+  z-index:100;
+  background:radial-gradient(ellipse at center, rgba(0,40,20,0.9) 0%, var(--deep-black) 70%);
+}
+.splash-logo {
+  text-align:center; position:relative; z-index:2; padding:20px;
+}
+.splash-logo h1 {
+  font-family:var(--font-head);
+  font-size:clamp(36px,9vw,90px);
+  font-weight:900;
+  line-height:1;
+  background:linear-gradient(135deg,var(--neon-green),var(--neon-cyan),var(--neon-lime));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 30px rgba(0,255,136,0.6));
+  animation:titleFloat 3s ease-in-out infinite;
+}
+.splash-logo .subtitle {
+  font-size:clamp(12px,3vw,18px);
+  letter-spacing:8px;
+  color:var(--text-dim);
+  margin-top:8px;
+  text-transform:uppercase;
+}
+.splash-logo .eco-badge {
+  display:inline-block;
+  margin-top:20px;
+  font-size:clamp(24px,5vw,40px);
+  animation:bounce 2s ease-in-out infinite;
+}
+.btn-play {
+  margin-top:40px;
+  padding:18px 60px;
+  font-family:var(--font-head);
+  font-size:clamp(16px,3vw,22px);
+  font-weight:700;
+  letter-spacing:4px;
+  color:var(--deep-black);
+  background:linear-gradient(135deg,var(--neon-green),var(--neon-cyan));
+  border:none; border-radius:50px;
+  cursor:pointer;
+  position:relative; overflow:hidden;
+  box-shadow:0 0 30px rgba(0,255,136,0.5), 0 0 60px rgba(0,255,136,0.2);
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+.btn-play::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,transparent,rgba(255,255,255,0.3),transparent);
+  transform:translateX(-100%); transition:transform 0.5s;
+}
+.btn-play:hover { transform:scale(1.05); box-shadow:0 0 50px rgba(0,255,136,0.7); }
+.btn-play:hover::before { transform:translateX(100%); }
+.btn-play:active { transform:scale(0.97); }
+
+/* ─── MENÚ PRINCIPAL ─────────────────────── */
+#mainMenu {
+  z-index:100; padding:20px;
+  background:radial-gradient(ellipse at 30% 20%, rgba(0,60,30,0.5) 0%, transparent 60%),
+             radial-gradient(ellipse at 70% 80%, rgba(0,40,60,0.4) 0%, transparent 60%),
+             var(--deep-black);
+}
+.menu-header {
+  text-align:center; margin-bottom:30px;
+}
+.menu-header h2 {
+  font-family:var(--font-head);
+  font-size:clamp(18px,4vw,32px);
+  color:var(--neon-green);
+  letter-spacing:4px;
+}
+.menu-header p { color:var(--text-dim); font-size:14px; margin-top:4px; }
+.games-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px; width:100%; max-width:960px;
+}
+.game-card {
+  background:var(--card-bg);
+  border:1px solid var(--border-glow);
+  border-radius:16px; padding:24px 20px;
+  cursor:pointer; position:relative; overflow:hidden;
+  transition:transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  backdrop-filter:blur(10px);
+}
+.game-card::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(0,255,136,0.05),transparent,rgba(0,238,255,0.05));
+  opacity:0; transition:opacity 0.3s;
+}
+.game-card:hover { transform:translateY(-6px) scale(1.02); border-color:var(--neon-green); box-shadow:0 10px 40px rgba(0,255,136,0.25), inset 0 1px 0 rgba(255,255,255,0.1); }
+.game-card:hover::before { opacity:1; }
+.card-icon { font-size:clamp(36px,7vw,52px); margin-bottom:12px; display:block; }
+.card-title {
+  font-family:var(--font-head);
+  font-size:clamp(13px,2.5vw,17px);
+  color:var(--neon-green);
+  margin-bottom:8px;
+  letter-spacing:2px;
+}
+.card-desc { font-size:13px; color:var(--text-dim); line-height:1.5; margin-bottom:16px; }
+.card-record { font-size:12px; color:var(--gold); margin-bottom:12px; }
+.btn-card {
+  width:100%; padding:10px;
+  font-family:var(--font-head);
+  font-size:12px; letter-spacing:2px;
+  color:var(--deep-black);
+  background:linear-gradient(135deg,var(--neon-green),var(--neon-cyan));
+  border:none; border-radius:30px;
+  cursor:pointer; font-weight:700;
+  transition:opacity 0.2s, transform 0.2s;
+}
+.btn-card:hover { opacity:0.9; transform:scale(1.03); }
+
+/* ─── HUD GENÉRICO ───────────────────────── */
+.game-screen {
+  z-index:100;
+  background:var(--deep-black);
+  padding:0; align-items:stretch; justify-content:flex-start;
+}
+.hud {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; z-index:10; flex-shrink:0;
+  background:rgba(0,10,5,0.8);
+  border-bottom:1px solid var(--border-glow);
+  backdrop-filter:blur(8px);
+  flex-wrap:wrap; gap:6px;
+}
+.hud-item {
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--font-head); font-size:clamp(11px,2.5vw,15px);
+}
+.hud-label { color:var(--text-dim); font-size:11px; }
+.hud-val { color:var(--neon-green); font-weight:700; }
+.hud-val.warn { color:var(--warn); }
+.hud-val.danger { color:var(--danger); animation:blink 0.5s infinite; }
+.btn-back {
+  padding:6px 14px;
+  font-family:var(--font-head); font-size:11px; letter-spacing:1px;
+  color:var(--text-dim); background:transparent;
+  border:1px solid var(--border-glow); border-radius:20px;
+  cursor:pointer; transition:all 0.2s;
+}
+.btn-back:hover { color:var(--neon-green); border-color:var(--neon-green); }
+.game-area { flex:1; position:relative; overflow:hidden; }
+
+/* ─── OVERLAY MODALES ────────────────────── */
+.modal-overlay {
+  position:absolute; inset:0;
+  background:rgba(0,5,3,0.92);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  z-index:50; backdrop-filter:blur(8px);
+  animation:fadeIn 0.3s ease;
+}
+.modal-box {
+  background:var(--card-bg);
+  border:1px solid var(--border-glow);
+  border-radius:20px; padding:40px 32px;
+  text-align:center; max-width:400px; width:90%;
+  box-shadow:0 0 60px rgba(0,255,136,0.15);
+}
+.modal-icon { font-size:56px; margin-bottom:16px; display:block; }
+.modal-title {
+  font-family:var(--font-head);
+  font-size:clamp(18px,4vw,28px);
+  margin-bottom:8px;
+}
+.modal-title.win { color:var(--neon-green); }
+.modal-title.lose { color:var(--danger); }
+.modal-score {
+  font-family:var(--font-head);
+  font-size:clamp(28px,6vw,48px);
+  color:var(--gold); margin:16px 0 4px;
+}
+.modal-record { color:var(--text-dim); font-size:13px; margin-bottom:24px; }
+.modal-msg { color:var(--text-dim); font-size:14px; margin-bottom:24px; line-height:1.6; }
+.modal-btns { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.btn-modal {
+  padding:12px 28px;
+  font-family:var(--font-head); font-size:13px; letter-spacing:2px;
+  border-radius:30px; border:none; cursor:pointer; font-weight:700;
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+.btn-modal.primary {
+  background:linear-gradient(135deg,var(--neon-green),var(--neon-cyan));
+  color:var(--deep-black);
+  box-shadow:0 0 20px rgba(0,255,136,0.3);
+}
+.btn-modal.secondary {
+  background:transparent;
+  color:var(--text-dim);
+  border:1px solid var(--border-glow);
+}
+.btn-modal:hover { transform:scale(1.05); }
+.btn-modal.primary:hover { box-shadow:0 0 30px rgba(0,255,136,0.5); }
+
+/* ─── ECO RECYCLING ──────────────────────── */
+#recyclingGame .game-area {
+  display:flex; flex-direction:column;
+  padding:12px; gap:10px;
+}
+.items-zone {
+  flex:1; display:flex; flex-wrap:wrap;
+  align-items:center; justify-content:center;
+  gap:8px; min-height:120px; position:relative;
+}
+.trash-item {
+  display:flex; flex-direction:column; align-items:center;
+  gap:3px; cursor:grab; padding:8px 10px;
+  background:rgba(0,40,20,0.7);
+  border:1px solid var(--border-glow);
+  border-radius:12px; font-size:clamp(20px,5vw,28px);
+  transition:transform 0.2s, box-shadow 0.2s;
+  user-select:none; position:relative;
+}
+.trash-item:hover { transform:scale(1.1); box-shadow:0 4px 16px rgba(0,255,136,0.3); }
+.trash-item.dragging { opacity:0.5; transform:scale(1.15); cursor:grabbing; }
+.trash-item .item-label { font-size:9px; color:var(--text-dim); letter-spacing:1px; }
+.bins-zone {
+  display:flex; gap:6px; justify-content:center;
+  flex-wrap:wrap; padding-bottom:8px;
+}
+.bin {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:10px 8px; min-width:70px; max-width:100px; flex:1;
+  border:2px dashed rgba(0,255,136,0.2);
+  border-radius:14px; transition:all 0.25s; position:relative;
+  background:rgba(0,20,10,0.5);
+}
+.bin.drag-over { border-color:var(--neon-green); background:rgba(0,255,136,0.12); transform:scale(1.05); }
+.bin .bin-icon { font-size:clamp(22px,5vw,30px); }
+.bin .bin-name { font-family:var(--font-head); font-size:9px; color:var(--text-dim); letter-spacing:1px; text-align:center; }
+.bin .bin-count { font-size:10px; color:var(--neon-green); font-weight:700; }
+.recycle-msg {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(0,10,5,0.95);
+  border:1px solid var(--neon-cyan);
+  border-radius:14px; padding:16px 20px;
+  text-align:center; max-width:280px; width:90%;
+  z-index:20; font-size:13px; color:var(--text-main);
+  line-height:1.5; animation:popIn 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);
+}
+.recycle-msg .msg-emoji { font-size:28px; margin-bottom:6px; display:block; }
+.recycle-msg.success { border-color:var(--neon-green); }
+.recycle-msg.error { border-color:var(--danger); }
+
+/* ─── ECO RACER ──────────────────────────── */
+#racerGame canvas { display:block; width:100%; height:100%; image-rendering:pixelated; }
+.speed-bar-wrap {
+  position:absolute; bottom:10px; left:12px; right:12px;
+  height:8px; background:rgba(255,255,255,0.1);
+  border-radius:4px; overflow:hidden; z-index:5;
+}
+.speed-bar {
+  height:100%; width:50%;
+  background:linear-gradient(90deg,var(--neon-green),var(--neon-lime));
+  border-radius:4px; transition:width 0.3s;
+  box-shadow:0 0 8px var(--neon-green);
+}
+
+/* ─── ECO DODGE & REVERSE ────────────────── */
+#dodgeGame canvas, #reverseDodgeGame canvas {
+  display:block; width:100%; height:100%;
+}
+
+/* ─── ANIMACIONES ────────────────────────── */
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes titleFloat {
+  0%,100% { transform:translateY(0); }
+  50% { transform:translateY(-10px); }
+}
+@keyframes bounce {
+  0%,100% { transform:translateY(0) scale(1); }
+  50% { transform:translateY(-8px) scale(1.1); }
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes popIn {
+  0% { opacity:0; transform:translate(-50%,-50%) scale(0.7); }
+  100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+}
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(30px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes floatUp {
+  0% { opacity:1; transform:translateY(0); }
+  100% { opacity:0; transform:translateY(-60px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(20px) scale(0.95); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+.card-anim { animation: cardIn 0.5s ease both; }
+.card-anim:nth-child(1) { animation-delay:0.05s; }
+.card-anim:nth-child(2) { animation-delay:0.12s; }
+.card-anim:nth-child(3) { animation-delay:0.19s; }
+.card-anim:nth-child(4) { animation-delay:0.26s; }
+
+/* ─── TOUCH CONTROLS ─────────────────────── */
+.touch-controls {
+  position:absolute; bottom:20px; left:50%;
+  transform:translateX(-50%);
+  display:flex; gap:16px; z-index:10;
+}
+.touch-btn {
+  width:60px; height:60px;
+  background:rgba(0,255,136,0.15);
+  border:2px solid var(--border-glow);
+  border-radius:50%; display:flex;
+  align-items:center; justify-content:center;
+  font-size:24px; cursor:pointer;
+  transition:background 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.touch-btn:active { background:rgba(0,255,136,0.35); transform:scale(0.9); }
+
+/* ─── COMBO DISPLAY ──────────────────────── */
+.combo-display {
+  position:absolute; top:16px; right:16px;
+  font-family:var(--font-head); font-size:clamp(16px,4vw,24px);
+  color:var(--gold); text-shadow:0 0 12px var(--gold);
+  z-index:8; transition:opacity 0.3s;
+}
+
+/* ─── PROGRESS BAR ───────────────────────── */
+.prog-bar-wrap {
+  width:100%; height:6px;
+  background:rgba(255,255,255,0.08);
+  flex-shrink:0;
+}
+.prog-bar {
+  height:100%;
+  background:linear-gradient(90deg,var(--neon-green),var(--neon-cyan));
+  transition:width 0.4s ease;
+  box-shadow:0 0 8px var(--neon-green);
+}
+
+/* ─── POWERUP ICONS ──────────────────────── */
+.powerup-active {
+  position:absolute; top:60px; left:12px;
+  font-size:18px; padding:4px 10px;
+  background:rgba(0,255,136,0.15);
+  border:1px solid var(--neon-green);
+  border-radius:20px; z-index:8;
+  animation:pulse 1s infinite;
+}
+
+/* ─── LIVES ──────────────────────────────── */
+.lives-display { display:flex; gap:4px; }
+.life-icon { font-size:16px; transition:opacity 0.3s; }
+.life-icon.lost { opacity:0.2; filter:grayscale(1); }
+
+/* ─── STARS ──────────────────────────────── */
+.stars-display { display:flex; gap:2px; }
+.star-icon { font-size:18px; color:var(--gold); }
+.star-icon.empty { opacity:0.2; }
+
+/* Floating score text */
+.float-text {
+  position:absolute; pointer-events:none;
+  font-family:var(--font-head); font-size:16px; font-weight:700;
+  animation:floatUp 1s ease forwards; z-index:20;
+}
+.float-text.pos { color:var(--neon-green); text-shadow:0 0 8px var(--neon-green); }
+.float-text.neg { color:var(--danger); text-shadow:0 0 8px var(--danger); }
+</style>
 </head>
 <body>
-    <div id="game-container"></div>
 
-    <script>
-        // ESCENA DE SELECCIÓN DE PERSONAJE
-        class SelectionScene extends Phaser.Scene {
-            constructor() { super('SelectionScene'); }
+<!-- CANVAS FONDO GLOBAL -->
+<canvas id="bgCanvas"></canvas>
 
-            create() {
-                this.add.text(400, 100, 'SELECCIONA TU ECO-HÉROE', { fontSize: '40px', fill: '#00ff88', fontStyle: 'bold' }).setOrigin(0.5);
-                
-                const heroes = [
-                    { name: 'TERRA', color: 0x2ecc71, x: 200, desc: '+ Vida' },
-                    { name: 'NOVA', color: 0x3498db, x: 330, desc: '+ Velocidad' },
-                    { name: 'AURA', color: 0x9b59b6, x: 460, desc: '+ Salto' },
-                    { name: 'ECO-BOT', color: 0xf1c40f, x: 590, desc: '+ Escudo' }
-                ];
+<!-- ════════════════ LOADER ════════════════ -->
+<div id="loader" class="screen active">
+  <div class="loader-ring"></div>
+  <div class="loader-text">CARGANDO MUNDO ECO...</div>
+  <div class="loader-bar-wrap"><div class="loader-bar" id="loaderBar"></div></div>
+</div>
 
-                heroes.forEach(h => {
-                    let card = this.add.rectangle(h.x, 300, 100, 150, h.color).setInteractive({ useHandCursor: true });
-                    this.add.text(h.x, 390, h.name, { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
-                    this.add.text(h.x, 415, h.desc, { fontSize: '14px', fill: '#aaa' }).setOrigin(0.5);
+<!-- ════════════════ SPLASH ════════════════ -->
+<div id="splash" class="screen">
+  <div class="splash-logo">
+    <div class="eco-badge">🌍</div>
+    <h1>GEN ALPHA<br>ECO</h1>
+    <p class="subtitle">El futuro es verde • Salva el planeta</p>
+    <button class="btn-play" id="btnPlay">⚡ JUGAR</button>
+    <p style="margin-top:16px;font-size:11px;color:var(--text-dim);letter-spacing:2px;">RECORD GLOBAL: <span id="globalRecord" style="color:var(--gold);">0</span> PTS</p>
+  </div>
+</div>
 
-                    card.on('pointerdown', () => {
-                        this.scene.start('PlayScene', { heroColor: h.color, heroName: h.name });
-                    });
-                    
-                    card.on('pointerover', () => card.setStrokeStyle(4, 0xffffff));
-                    card.on('pointerout', () => card.setStrokeStyle(0));
-                });
-            }
-        }
+<!-- ════════════════ MENÚ PRINCIPAL ════════════════ -->
+<div id="mainMenu" class="screen">
+  <div class="menu-header">
+    <h2>🌿 SELECCIONA TU MISIÓN ECO</h2>
+    <p>Cada juego enseña algo nuevo sobre el planeta</p>
+  </div>
+  <div class="games-grid" id="gamesGrid">
+    <!-- Cards generadas por JS -->
+  </div>
+  <p style="margin-top:16px;font-size:11px;color:var(--text-dim);letter-spacing:2px;">
+    RÉCORDS TOTALES: <span id="totalRecord" style="color:var(--gold)">0</span> PTS
+  </p>
+</div>
 
-        // ESCENA DE JUEGO (MINIJUEGO DE PLATAFORMAS)
-        class PlayScene extends Phaser.Scene {
-            constructor() { super('PlayScene'); }
+<!-- ════════════════ ECO RECYCLING ════════════════ -->
+<div id="recyclingGame" class="screen game-screen">
+  <div class="hud">
+    <button class="btn-back" id="recycBack">◀ MENÚ</button>
+    <div class="hud-item">⏱ <span class="hud-label">TIEMPO</span> <span class="hud-val" id="recycTime">60</span></div>
+    <div class="hud-item">⭐ <span class="hud-label">PUNTOS</span> <span class="hud-val" id="recycScore">0</span></div>
+    <div class="hud-item">📦 <span class="hud-label">RESTANTES</span> <span class="hud-val" id="recycLeft">24</span></div>
+  </div>
+  <div class="prog-bar-wrap"><div class="prog-bar" id="recycProg" style="width:100%"></div></div>
+  <div class="game-area" id="recyclingArea">
+    <div class="items-zone" id="itemsZone"></div>
+    <div class="bins-zone" id="binsZone"></div>
+  </div>
+</div>
 
-            init(data) {
-                this.selectedColor = data.heroColor;
-                this.heroName = data.heroName;
-            }
+<!-- ════════════════ ECO RACER ════════════════ -->
+<div id="racerGame" class="screen game-screen">
+  <div class="hud">
+    <button class="btn-back" id="racerBack">◀ MENÚ</button>
+    <div class="hud-item">🏎️ <span class="hud-label">PUNTOS</span> <span class="hud-val" id="racerScore">0</span></div>
+    <div class="hud-item">⚡ <span class="hud-label">NIVEL</span> <span class="hud-val" id="racerLevel">1</span></div>
+    <div class="hud-item">❤️ <div class="lives-display" id="racerLives"></div></div>
+  </div>
+  <div class="prog-bar-wrap"><div class="prog-bar" id="racerProg" style="width:50%"></div></div>
+  <div class="game-area" id="racerArea">
+    <canvas id="racerCanvas"></canvas>
+    <div class="speed-bar-wrap"><div class="speed-bar" id="speedBar"></div></div>
+  </div>
+</div>
 
-            create() {
-                // Suelo y Plataformas
-                this.platforms = this.physics.add.staticGroup();
-                for (let i = 0; i < 800; i += 40) {
-                    this.platforms.add(this.add.rectangle(i, 580, 40, 40, 0x333333));
-                }
-                this.platforms.add(this.add.rectangle(400, 400, 200, 20, 0x00ff88));
-                this.platforms.add(this.add.rectangle(150, 250, 200, 20, 0x00ff88));
+<!-- ════════════════ ECO DODGE ════════════════ -->
+<div id="dodgeGame" class="screen game-screen">
+  <div class="hud">
+    <button class="btn-back" id="dodgeBack">◀ MENÚ</button>
+    <div class="hud-item">⏱ <span class="hud-label">TIEMPO</span> <span class="hud-val" id="dodgeTime">30</span></div>
+    <div class="hud-item">⭐ <span class="hud-label">PUNTOS</span> <span class="hud-val" id="dodgeScore">0</span></div>
+    <div class="hud-item">❤️ <div class="lives-display" id="dodgeLives"></div></div>
+  </div>
+  <div class="game-area" id="dodgeArea">
+    <canvas id="dodgeCanvas"></canvas>
+    <div class="combo-display" id="dodgeCombo"></div>
+    <div class="touch-controls" id="dodgeTouchCtrl">
+      <div class="touch-btn" id="dodgeLeft">◀</div>
+      <div class="touch-btn" id="dodgeRight">▶</div>
+    </div>
+  </div>
+</div>
 
-                // Jugador (El Avatar seleccionado)
-                this.player = this.add.rectangle(100, 450, 30, 50, this.selectedColor);
-                this.physics.add.existing(this.player);
-                this.player.body.setCollideWorldBounds(true);
-                this.physics.add.collider(this.player, this.platforms);
+<!-- ════════════════ ECO REVERSE DODGE ════════════════ -->
+<div id="reverseDodgeGame" class="screen game-screen">
+  <div class="hud">
+    <button class="btn-back" id="revBack">◀ MENÚ</button>
+    <div class="hud-item">⏱ <span class="hud-label">TIEMPO</span> <span class="hud-val" id="revTime">45</span></div>
+    <div class="hud-item">⭐ <span class="hud-label">PUNTOS</span> <span class="hud-val" id="revScore">0</span></div>
+    <div class="hud-item">❤️ <div class="lives-display" id="revLives"></div></div>
+  </div>
+  <div class="game-area" id="revArea">
+    <canvas id="revCanvas"></canvas>
+    <div class="combo-display" id="revCombo"></div>
+    <div class="touch-controls" id="revTouchCtrl">
+      <div class="touch-btn" id="revLeft">◀</div>
+      <div class="touch-btn" id="revRight">▶</div>
+    </div>
+  </div>
+</div>
 
-                // HUD (Información en pantalla)
-                this.add.text(20, 20, 'Héroe: ' + this.heroName, { fontSize: '20px', fill: '#00ff88' });
-                this.scoreText = this.add.text(600, 20, 'Eco-Puntos: 0', { fontSize: '20px', fill: '#fff' });
-                this.score = 0;
+<script>
+/* ═══════════════════════════════════════════════════════
+   GEN ALPHA ECO — JAVASCRIPT PRINCIPAL
+═══════════════════════════════════════════════════════ */
 
-                // Objetos recolectables (Basura para reciclar)
-                this.items = this.physics.add.group();
-                for (let i = 0; i < 5; i++) {
-                    let item = this.add.circle(Phaser.Math.Between(100, 700), 0, 10, 0xffffff);
-                    this.items.add(item);
-                    item.body.setBounceY(0.4);
-                }
-                this.physics.add.collider(this.items, this.platforms);
-                this.physics.add.overlap(this.player, this.items, (p, item) => {
-                    item.destroy();
-                    this.score += 10;
-                    this.scoreText.setText('Eco-Puntos: ' + this.score);
-                });
+// ─── AUDIO ENGINE ──────────────────────────────────────
+const AC = new (window.AudioContext || window.webkitAudioContext)();
 
-                // Controles
-                this.cursors = this.input.keyboard.createCursorKeys();
-            }
+function beep(freq=440, type='sine', dur=0.15, vol=0.3, delay=0) {
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.type = type; o.frequency.setValueAtTime(freq, AC.currentTime + delay);
+    g.gain.setValueAtTime(0, AC.currentTime + delay);
+    g.gain.linearRampToValueAtTime(vol, AC.currentTime + delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + delay + dur);
+    o.start(AC.currentTime + delay);
+    o.stop(AC.currentTime + delay + dur + 0.01);
+  } catch(e) {}
+}
 
-            update() {
-                if (this.cursors.left.isDown) {
-                    this.player.body.setVelocityX(-200);
-                } else if (this.cursors.right.isDown) {
-                    this.player.body.setVelocityX(200);
-                } else {
-                    this.player.body.setVelocityX(0);
-                }
+function playSuccess() {
+  beep(523, 'sine', 0.12, 0.25, 0);
+  beep(659, 'sine', 0.12, 0.25, 0.1);
+  beep(784, 'sine', 0.18, 0.25, 0.2);
+}
 
-                if (this.cursors.up.isDown && this.player.body.touching.down) {
-                    this.player.body.setVelocityY(-450);
-                }
-            }
-        }
+function playError() {
+  beep(200, 'sawtooth', 0.2, 0.3, 0);
+  beep(150, 'sawtooth', 0.15, 0.2, 0.15);
+}
 
-        // CONFIGURACIÓN GLOBAL
-        const config = {
-            type: Phaser.AUTO,
-            width: 800,
-            height: 600,
-            parent: 'game-container',
-            backgroundColor: '#0a0a2a',
-            physics: { default: 'arcade', arcade: { gravity: { y: 800 } } },
-            scene: [SelectionScene, PlayScene]
-        };
+function playCollect() {
+  beep(880, 'sine', 0.08, 0.2, 0);
+  beep(1100, 'sine', 0.08, 0.2, 0.06);
+}
 
-        new Phaser.Game(config);
-    </script>
+function playHit() {
+  beep(120, 'square', 0.15, 0.35, 0);
+}
+
+function playWin() {
+  [523,659,784,1047].forEach((f,i) => beep(f,'sine',0.2,0.3,i*0.12));
+}
+
+function playLose() {
+  [400,300,200,100].forEach((f,i) => beep(f,'sawtooth',0.2,0.3,i*0.1));
+}
+
+function playMenuBg() {
+  // Ambience discreta
+  const freqs = [110, 165, 220];
+  freqs.forEach(f => {
+    try {
+      const o = AC.createOscillator();
+      const g = AC.createGain();
+      const lfo = AC.createOscillator();
+      const lgain = AC.createGain();
+      lfo.connect(lgain); lgain.connect(g.gain);
+      o.connect(g); g.connect(AC.destination);
+      o.type = 'sine'; o.frequency.value = f;
+      lfo.type = 'sine'; lfo.frequency.value = 0.1 + Math.random()*0.2;
+      lgain.gain.value = 0.04;
+      g.gain.value = 0.04;
+      lfo.start(); o.start();
+      setTimeout(() => { try { o.stop(); lfo.stop(); } catch(e) {} }, 4000);
+    } catch(e) {}
+  });
+}
+
+// ─── LOCAL STORAGE ─────────────────────────────────────
+function saveRecord(key, val) {
+  const cur = parseInt(localStorage.getItem('gae_' + key) || '0');
+  if (val > cur) localStorage.setItem('gae_' + key, val);
+  updateGlobalRecord();
+}
+function getRecord(key) { return parseInt(localStorage.getItem('gae_' + key) || '0'); }
+function updateGlobalRecord() {
+  const keys = ['recycling','racer','dodge','reverse'];
+  const total = keys.reduce((a,k) => a + getRecord(k), 0);
+  document.getElementById('globalRecord').textContent = total;
+  const el = document.getElementById('totalRecord');
+  if (el) el.textContent = total;
+}
+
+// ─── PANTALLAS ──────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('active'); el.style.display = 'flex'; }
+}
+
+// ─── FONDO ANIMADO GLOBAL ───────────────────────────────
+const bgC = document.getElementById('bgCanvas');
+const bgX = bgC.getContext('2d');
+let bgParticles = [];
+
+function resizeBg() {
+  bgC.width = window.innerWidth;
+  bgC.height = window.innerHeight;
+}
+
+function initBgParticles() {
+  bgParticles = [];
+  for (let i = 0; i < 80; i++) bgParticles.push(mkBgP());
+}
+
+function mkBgP() {
+  return {
+    x: Math.random() * bgC.width,
+    y: Math.random() * bgC.height,
+    r: Math.random() * 1.5 + 0.3,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: -(Math.random() * 0.6 + 0.2),
+    life: Math.random(),
+    maxLife: Math.random() * 0.6 + 0.4,
+    emoji: ['🌿','🍃','✨','💚','🌱'][Math.floor(Math.random()*5)],
+    useEmoji: Math.random() < 0.08,
+    col: `hsl(${120 + Math.random()*60},100%,${50+Math.random()*30}%)`
+  };
+}
+
+function drawBg(ts) {
+  bgX.clearRect(0, 0, bgC.width, bgC.height);
+  // Grilla sutil
+  bgX.strokeStyle = 'rgba(0,255,136,0.03)';
+  bgX.lineWidth = 1;
+  const gs = 60;
+  for (let x = 0; x < bgC.width; x += gs) {
+    bgX.beginPath(); bgX.moveTo(x, 0); bgX.lineTo(x, bgC.height); bgX.stroke();
+  }
+  for (let y = 0; y < bgC.height; y += gs) {
+    bgX.beginPath(); bgX.moveTo(0, y); bgX.lineTo(bgC.width, y); bgX.stroke();
+  }
+  // Partículas
+  bgParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.life += 0.004;
+    if (p.life > p.maxLife || p.y < -10) Object.assign(p, mkBgP(), {y: bgC.height + 10, x: Math.random()*bgC.width, life:0});
+    const alpha = Math.sin((p.life / p.maxLife) * Math.PI) * 0.7;
+    if (p.useEmoji) {
+      bgX.globalAlpha = alpha * 0.4;
+      bgX.font = '14px sans-serif';
+      bgX.fillText(p.emoji, p.x, p.y);
+      bgX.globalAlpha = 1;
+    } else {
+      bgX.globalAlpha = alpha;
+      bgX.fillStyle = p.col;
+      bgX.beginPath(); bgX.arc(p.x, p.y, p.r, 0, Math.PI*2); bgX.fill();
+      bgX.globalAlpha = 1;
+    }
+  });
+  requestAnimationFrame(drawBg);
+}
+
+window.addEventListener('resize', () => { resizeBg(); initBgParticles(); });
+resizeBg(); initBgParticles(); requestAnimationFrame(drawBg);
+
+// ─── LOADER ─────────────────────────────────────────────
+(function() {
+  const bar = document.getElementById('loaderBar');
+  let p = 0;
+  const iv = setInterval(() => {
+    p += Math.random() * 18 + 5;
+    if (p >= 100) { p = 100; clearInterval(iv); bar.style.width = '100%'; setTimeout(showSplash, 400); }
+    bar.style.width = p + '%';
+  }, 100);
+})();
+
+function showSplash() {
+  updateGlobalRecord();
+  showScreen('splash');
+  setTimeout(playMenuBg, 100);
+}
+
+// ─── MENÚ PRINCIPAL ─────────────────────────────────────
+document.getElementById('btnPlay').addEventListener('click', () => {
+  AC.resume();
+  beep(660, 'sine', 0.1, 0.3);
+  buildMenu();
+  showScreen('mainMenu');
+});
+
+const GAMES = [
+  {
+    id:'recycling', icon:'♻️', name:'Eco Recycling',
+    desc:'Clasifica 24 residuos en las canecas correctas antes de que se acabe el tiempo.',
+    key:'recycling', fn: startRecycling
+  },
+  {
+    id:'racer', icon:'🚗', name:'Eco Racer',
+    desc:'Conduce tu carrito ecológico, recoge bonos verdes y esquiva la contaminación.',
+    key:'racer', fn: startRacer
+  },
+  {
+    id:'dodge', icon:'🛡️', name:'Eco Dodge',
+    desc:'Esquiva objetos contaminantes durante 30 segundos y combina esquivas para puntos extra.',
+    key:'dodge', fn: startDodge
+  },
+  {
+    id:'reverse', icon:'🌿', name:'Eco Reverse Dodge',
+    desc:'Atrapa elementos positivos y evita la contaminación. ¡El planeta necesita tu ayuda!',
+    key:'reverse', fn: startReverse
+  }
+];
+
+function buildMenu() {
+  updateGlobalRecord();
+  const grid = document.getElementById('gamesGrid');
+  grid.innerHTML = '';
+  GAMES.forEach((g, i) => {
+    const rec = getRecord(g.key);
+    const card = document.createElement('div');
+    card.className = 'game-card card-anim';
+    card.innerHTML = `
+      <span class="card-icon">${g.icon}</span>
+      <div class="card-title">${g.name}</div>
+      <div class="card-desc">${g.desc}</div>
+      <div class="card-record">🏆 RÉCORD: ${rec} pts</div>
+      <button class="btn-card">⚡ JUGAR</button>
+    `;
+    card.querySelector('.btn-card').addEventListener('click', () => {
+      beep(440, 'sine', 0.1, 0.3);
+      g.fn();
+    });
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// MINIJUEGO 1 — ECO RECYCLING
+// ═══════════════════════════════════════════════════════
+const BINS = [
+  { id:'papel',   name:'PAPEL',       icon:'📰', color:'#4a90d9', items:['Periódico','Cartón','Revista','Cuaderno','Caja'] },
+  { id:'plastico',name:'PLÁSTICO',    icon:'🧴', color:'#e74c3c', items:['Botella PET','Bolsa','Envase','Pajilla','Tapa'] },
+  { id:'vidrio',  name:'VIDRIO',      icon:'🍾', color:'#2ecc71', items:['Botella vidrio','Frasco','Copa rota','Lata vidrio'] },
+  { id:'organico',name:'ORGÁNICO',    icon:'🍂', color:'#8b4513', items:['Cáscara fruta','Restos comida','Hojas','Hueso'] },
+  { id:'electro', name:'ELECTRÓNICO', icon:'📱', color:'#9b59b6', items:['Pila','Celular viejo','Cable','Foco LED','Teclado'] }
+];
+
+const ITEM_EMOJIS = {
+  'Periódico':'📰','Cartón':'📦','Revista':'📓','Cuaderno':'📝','Caja':'🗃️',
+  'Botella PET':'🧴','Bolsa':'🛍️','Envase':'🥤','Pajilla':'🥢','Tapa':'🔘',
+  'Botella vidrio':'🍾','Frasco':'🫙','Copa rota':'🥂','Lata vidrio':'🫙',
+  'Cáscara fruta':'🍊','Restos comida':'🍝','Hojas':'🍃','Hueso':'🦴',
+  'Pila':'🔋','Celular viejo':'📱','Cable':'🔌','Foco LED':'💡','Teclado':'⌨️'
+};
+
+let recycState = {};
+
+function startRecycling() {
+  showScreen('recyclingGame');
+  resetRecycling();
+}
+
+function resetRecycling() {
+  // Construir 24 ítems aleatorios
+  let allItems = [];
+  BINS.forEach(b => b.items.forEach(name => allItems.push({ name, bin: b.id })));
+  allItems = shuffle(allItems).slice(0, 24);
+
+  recycState = {
+    items: allItems,
+    score: 0,
+    time: 60,
+    left: allItems.length,
+    interval: null,
+    dragItem: null,
+    msgTimeout: null
+  };
+
+  renderRecycling();
+  startRecyclingTimer();
+}
+
+function renderRecycling() {
+  const area = document.getElementById('itemsZone');
+  const binsZ = document.getElementById('binsZone');
+  area.innerHTML = '';
+  binsZ.innerHTML = '';
+
+  // Ítems
+  recycState.items.forEach((item, idx) => {
+    if (item.classified) return;
+    const el = document.createElement('div');
+    el.className = 'trash-item';
+    el.draggable = true;
+    el.dataset.idx = idx;
+    el.innerHTML = `<span>${ITEM_EMOJIS[item.name] || '📦'}</span><span class="item-label">${item.name}</span>`;
+
+    // Desktop drag
+    el.addEventListener('dragstart', e => {
+      el.classList.add('dragging');
+      recycState.dragItem = idx;
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+    // Touch drag
+    el.addEventListener('touchstart', onItemTouchStart, {passive:false});
+    area.appendChild(el);
+  });
+
+  // Canecas
+  BINS.forEach(b => {
+    const cnt = recycState.items.filter(i => i.classified && i.bin === b.id).length;
+    const el = document.createElement('div');
+    el.className = 'bin';
+    el.dataset.bin = b.id;
+    el.style.borderColor = b.color + '66';
+    el.innerHTML = `
+      <div class="bin-icon">${b.icon}</div>
+      <div class="bin-name">${b.name}</div>
+      <div class="bin-count">${cnt} ✓</div>
+    `;
+
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); el.classList.remove('drag-over');
+      handleRecycleClassify(b.id, el.getBoundingClientRect());
+    });
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
+      handleRecycleTouchDrop(b.id, el.getBoundingClientRect());
+    });
+    binsZ.appendChild(el);
+  });
+
+  // Update HUD
+  document.getElementById('recycScore').textContent = recycState.score;
+  document.getElementById('recycLeft').textContent = recycState.items.filter(i=>!i.classified).length;
+  const pct = (1 - recycState.time / 60) * 100;
+  document.getElementById('recycProg').style.width = (100 - pct) + '%';
+}
+
+// Touch drag para móvil
+let touchGhost = null, touchDragIdx = null;
+
+function onItemTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const el = e.currentTarget;
+  touchDragIdx = parseInt(el.dataset.idx);
+
+  touchGhost = document.createElement('div');
+  touchGhost.style.cssText = `position:fixed;pointer-events:none;z-index:1000;font-size:32px;
+    transform:translate(-50%,-50%);opacity:0.85;transition:none;`;
+  touchGhost.textContent = ITEM_EMOJIS[recycState.items[touchDragIdx]?.name] || '📦';
+  document.body.appendChild(touchGhost);
+  moveTouchGhost(touch.clientX, touch.clientY);
+
+  document.addEventListener('touchmove', onTouchMove, {passive:false});
+  document.addEventListener('touchend', onTouchEnd);
+}
+
+function moveTouchGhost(x, y) {
+  if (touchGhost) { touchGhost.style.left = x+'px'; touchGhost.style.top = y+'px'; }
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  moveTouchGhost(t.clientX, t.clientY);
+  // Highlight bin under touch
+  document.querySelectorAll('.bin').forEach(b => {
+    const r = b.getBoundingClientRect();
+    if (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom)
+      b.classList.add('drag-over');
+    else b.classList.remove('drag-over');
+  });
+}
+
+function onTouchEnd(e) {
+  const t = e.changedTouches[0];
+  if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+  document.querySelectorAll('.bin').forEach(b => b.classList.remove('drag-over'));
+
+  if (touchDragIdx === null) return;
+  recycState.dragItem = touchDragIdx;
+  touchDragIdx = null;
+
+  document.querySelectorAll('.bin').forEach(b => {
+    const r = b.getBoundingClientRect();
+    if (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom) {
+      handleRecycleClassify(b.dataset.bin, r);
+    }
+  });
+}
+
+function handleRecycleTouchDrop(binId, rect) {
+  if (recycState.dragItem === null) return;
+  handleRecycleClassify(binId, rect);
+}
+
+function handleRecycleClassify(binId, rect) {
+  const idx = recycState.dragItem;
+  if (idx === null) return;
+  recycState.dragItem = null;
+  const item = recycState.items[idx];
+  if (!item || item.classified) return;
+
+  const area = document.getElementById('recyclingArea');
+
+  if (item.bin === binId) {
+    // CORRECTO
+    item.classified = true;
+    recycState.score += 50;
+    playSuccess();
+    showRecycleMsg(true, `✅ ¡Correcto! ${ITEM_EMOJIS[item.name]} ${item.name} va en ${BINS.find(b=>b.id===binId).icon} ${BINS.find(b=>b.id===binId).name}.`);
+    spawnFloatText('+50', rect.left + rect.width/2, rect.top, 'pos', area);
+    const left = recycState.items.filter(i=>!i.classified).length;
+    if (left === 0) { clearInterval(recycState.interval); setTimeout(() => endRecycling(true), 800); return; }
+  } else {
+    // INCORRECTO
+    playError();
+    const correctBin = BINS.find(b => b.id === item.bin);
+    showRecycleMsg(false, `❌ ${ITEM_EMOJIS[item.name]} ${item.name} NO va aquí.\n¡Va en ${correctBin.icon} ${correctBin.name}!`);
+    recycState.score = Math.max(0, recycState.score - 10);
+    spawnFloatText('-10', rect.left + rect.width/2, rect.top, 'neg', area);
+  }
+  renderRecycling();
+}
+
+function showRecycleMsg(success, msg) {
+  clearTimeout(recycState.msgTimeout);
+  const existing = document.querySelector('.recycle-msg');
+  if (existing) existing.remove();
+  const area = document.getElementById('recyclingArea');
+  const div = document.createElement('div');
+  div.className = 'recycle-msg ' + (success ? 'success' : 'error');
+  div.innerHTML = `<span class="msg-emoji">${success?'🎉':'💡'}</span>${msg.replace('\n','<br>')}`;
+  area.appendChild(div);
+  recycState.msgTimeout = setTimeout(() => div.remove(), success ? 1200 : 2200);
+}
+
+function startRecyclingTimer() {
+  clearInterval(recycState.interval);
+  recycState.interval = setInterval(() => {
+    recycState.time--;
+    document.getElementById('recycTime').textContent = recycState.time;
+    const pct = recycState.time / 60 * 100;
+    document.getElementById('recycProg').style.width = pct + '%';
+    const tv = document.getElementById('recycTime');
+    tv.className = 'hud-val' + (recycState.time <= 10 ? ' danger' : recycState.time <= 20 ? ' warn' : '');
+    if (recycState.time <= 0) { clearInterval(recycState.interval); endRecycling(false); }
+  }, 1000);
+}
+
+function endRecycling(win) {
+  clearInterval(recycState.interval);
+  const left = recycState.items.filter(i=>!i.classified).length;
+  const bonus = win ? 200 : 0;
+  const total = recycState.score + bonus;
+  saveRecord('recycling', total);
+  const area = document.getElementById('recyclingArea');
+  const msg = win ? '¡Clasificaste todos los residuos correctamente!<br>+200 puntos de bonificación 🎉' :
+    `Clasificaste ${24 - left} de 24 residuos.<br>¡Sigue practicando para mejorar!`;
+  showModal(area, win, total, 'recycling', msg, resetRecycling);
+  if (win) playWin(); else playLose();
+}
+
+document.getElementById('recycBack').addEventListener('click', () => {
+  clearInterval(recycState.interval);
+  if (touchGhost) { touchGhost.remove(); touchGhost=null; }
+  document.removeEventListener('touchmove', onTouchMove);
+  buildMenu(); showScreen('mainMenu');
+});
+
+// ═══════════════════════════════════════════════════════
+// MINIJUEGO 2 — ECO RACER
+// ═══════════════════════════════════════════════════════
+let racerState = {};
+let racerAnimId = null;
+
+const RACER_POSITIVES = ['🌳','♻️','🔋','🚲','☀️','🌿','💧','🍃'];
+const RACER_NEGATIVES = ['🗑️','🛢️','💨','☁️','🏭','🚬'];
+
+function startRacer() {
+  showScreen('racerGame');
+  setupRacerCanvas();
+  resetRacer();
+}
+
+function setupRacerCanvas() {
+  const canvas = document.getElementById('racerCanvas');
+  const area = document.getElementById('racerArea');
+  canvas.width = area.clientWidth || window.innerWidth;
+  canvas.height = (area.clientHeight || window.innerHeight) - 20;
+}
+
+function resetRacer() {
+  cancelAnimationFrame(racerAnimId);
+  const canvas = document.getElementById('racerCanvas');
+  const W = canvas.width, H = canvas.height;
+
+  racerState = {
+    score: 0, level: 1, lives: 3,
+    speed: 4, maxSpeed: 14,
+    carX: W/2, carY: H - 100, carW: 40, carH: 60,
+    roadY: 0, roadH: 80,
+    objects: [], objTimer: 0, objInterval: 70,
+    bgY: 0,
+    over: false, paused: false,
+    keys: {}, touchDir: 0,
+    nextLevel: 500
+  };
+
+  updateRacerHUD();
+  setupRacerControls();
+  racerLoop();
+}
+
+function setupRacerControls() {
+  document.onkeydown = e => { racerState.keys[e.key] = true; };
+  document.onkeyup = e => { racerState.keys[e.key] = false; };
+
+  const canvas = document.getElementById('racerCanvas');
+  canvas.ontouchstart = e => {
+    const t = e.touches[0];
+    racerState.touchDir = t.clientX < window.innerWidth/2 ? -1 : 1;
+    e.preventDefault();
+  };
+  canvas.ontouchmove = e => {
+    const t = e.touches[0];
+    racerState.touchDir = t.clientX < window.innerWidth/2 ? -1 : 1;
+    e.preventDefault();
+  };
+  canvas.ontouchend = () => { racerState.touchDir = 0; };
+}
+
+function racerLoop() {
+  const canvas = document.getElementById('racerCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const s = racerState;
+
+  if (s.over) return;
+
+  // Mover coche
+  let dx = 0;
+  if (s.keys['ArrowLeft'] || s.keys['a'] || s.touchDir === -1) dx = -1;
+  if (s.keys['ArrowRight'] || s.keys['d'] || s.touchDir === 1) dx = 1;
+  s.carX += dx * 5;
+  s.carX = Math.max(W*0.12, Math.min(W*0.88, s.carX));
+
+  // Fondo carretera
+  s.bgY = (s.bgY + s.speed) % H;
+
+  // Objetos
+  s.objTimer++;
+  if (s.objTimer >= s.objInterval) {
+    s.objTimer = 0;
+    const isPos = Math.random() < 0.55;
+    const emojis = isPos ? RACER_POSITIVES : RACER_NEGATIVES;
+    s.objects.push({
+      x: W*0.12 + Math.random()*(W*0.76),
+      y: -40, w: 36, h: 36,
+      emoji: emojis[Math.floor(Math.random()*emojis.length)],
+      positive: isPos, speed: s.speed + Math.random()*2
+    });
+  }
+
+  // Mover objetos
+  s.objects.forEach(o => o.y += o.speed);
+  s.objects = s.objects.filter(o => o.y < H + 40);
+
+  // Colisiones
+  s.objects.forEach((o, i) => {
+    if (Math.abs(o.x - s.carX) < 28 && Math.abs(o.y - s.carY) < 36) {
+      const area = document.getElementById('racerArea');
+      if (o.positive) {
+        s.score += 30;
+        s.speed = Math.min(s.maxSpeed, s.speed + 0.5);
+        playCollect();
+        spawnFloatText('+30', s.carX, s.carY, 'pos', area);
+      } else {
+        s.lives--;
+        s.speed = Math.max(2, s.speed - 1.5);
+        playHit();
+        spawnFloatText('¡GOLPE!', s.carX, s.carY, 'neg', area);
+        if (s.lives <= 0) { s.over = true; endRacer(); return; }
+      }
+      s.objects.splice(i, 1);
+      updateRacerHUD();
+    }
+  });
+
+  // Score pasivo + nivel
+  s.score += 1;
+  if (s.score >= s.nextLevel) {
+    s.level++;
+    s.nextLevel += 600 + s.level * 100;
+    s.speed = Math.min(s.maxSpeed, s.speed + 0.8);
+    s.objInterval = Math.max(35, s.objInterval - 5);
+    updateRacerHUD();
+    beep(880,'sine',0.2,0.3);
+  }
+
+  // ─── DRAW ───
+  ctx.clearRect(0, 0, W, H);
+
+  // Cielo
+  const sky = ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#020a06'); sky.addColorStop(1,'#0a2010');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+
+  // Carretera
+  const roadX = W*0.1, roadW = W*0.8;
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(roadX, 0, roadW, H);
+
+  // Líneas carretera
+  ctx.strokeStyle = 'rgba(255,220,0,0.6)'; ctx.lineWidth = 3; ctx.setLineDash([40,30]);
+  ctx.lineDashOffset = -s.bgY;
+  ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Bordes carretera
+  ctx.strokeStyle = 'rgba(0,255,136,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(roadX,0); ctx.lineTo(roadX,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(roadX+roadW,0); ctx.lineTo(roadX+roadW,H); ctx.stroke();
+
+  // Objetos
+  ctx.font = '28px serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  s.objects.forEach(o => {
+    if (!o.positive) {
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = '#ff3355';
+      ctx.beginPath(); ctx.arc(o.x, o.y, 22, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillText(o.emoji, o.x, o.y);
+  });
+
+  // Coche (emoji + glow)
+  ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20;
+  ctx.font = '44px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🚗', s.carX, s.carY);
+  ctx.shadowBlur = 0;
+
+  // Barra velocidad
+  const pct = (s.speed - 2) / (s.maxSpeed - 2);
+  document.getElementById('speedBar').style.width = (pct*100) + '%';
+  document.getElementById('speedBar').style.background =
+    pct > 0.7 ? 'linear-gradient(90deg,#ff3355,#ffaa00)' :
+    'linear-gradient(90deg,var(--neon-green),var(--neon-lime))';
+
+  if (!s.over) racerAnimId = requestAnimationFrame(racerLoop);
+}
+
+function updateRacerHUD() {
+  document.getElementById('racerScore').textContent = racerState.score;
+  document.getElementById('racerLevel').textContent = racerState.level;
+  const lives = document.getElementById('racerLives');
+  lives.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const s = document.createElement('span');
+    s.className = 'life-icon' + (i >= racerState.lives ? ' lost' : '');
+    s.textContent = '❤️'; lives.appendChild(s);
+  }
+}
+
+function endRacer() {
+  cancelAnimationFrame(racerAnimId);
+  saveRecord('racer', racerState.score);
+  const area = document.getElementById('racerArea');
+  showModal(area, false, racerState.score, 'racer',
+    `¡Alcanzaste el nivel ${racerState.level}!<br>La energía verde te da más velocidad. ¡Sigue reciclando!`,
+    () => { setupRacerCanvas(); resetRacer(); });
+  playLose();
+}
+
+document.getElementById('racerBack').addEventListener('click', () => {
+  racerState.over = true; cancelAnimationFrame(racerAnimId);
+  document.onkeydown = null; document.onkeyup = null;
+  buildMenu(); showScreen('mainMenu');
+});
+
+// ═══════════════════════════════════════════════════════
+// MINIJUEGO 3 — ECO DODGE
+// ═══════════════════════════════════════════════════════
+let dodgeState = {};
+let dodgeAnimId = null;
+
+const DODGE_ENEMIES = ['🗑️','☁️','🧪','🛢️','🏭','💊','⚠️','🚬'];
+const DODGE_POWERUPS = ['⭐','🛡️','⚡','🌿'];
+
+function startDodge() {
+  showScreen('dodgeGame');
+  setupDodgeCanvas();
+  resetDodge();
+}
+
+function setupDodgeCanvas() {
+  const canvas = document.getElementById('dodgeCanvas');
+  const area = document.getElementById('dodgeArea');
+  canvas.width = area.clientWidth || window.innerWidth;
+  canvas.height = area.clientHeight || window.innerHeight - 60;
+}
+
+function resetDodge() {
+  cancelAnimationFrame(dodgeAnimId);
+  clearInterval(dodgeState.timerInt);
+  const canvas = document.getElementById('dodgeCanvas');
+  const W = canvas.width, H = canvas.height;
+
+  dodgeState = {
+    score: 0, lives: 3, time: 30,
+    playerX: W/2, playerY: H - 80, playerW: 40, playerH: 40,
+    enemies: [], powerups: [],
+    combo: 0, maxCombo: 0,
+    enemyTimer: 0, enemyInterval: 55,
+    pwTimer: 0, pwInterval: 300,
+    shield: false, shieldTime: 0,
+    speed: 1, over: false,
+    keys: {}, touchDir: 0,
+    bgStars: Array.from({length:30}, () => ({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*1.5+0.3,
+      v: Math.random()*1+0.5
+    }))
+  };
+
+  updateDodgeHUD();
+  setupDodgeControls();
+  startDodgeTimer();
+  dodgeLoop();
+}
+
+function setupDodgeControls() {
+  const left = document.getElementById('dodgeLeft');
+  const right = document.getElementById('dodgeRight');
+  left.ontouchstart = () => { dodgeState.touchDir = -1; };
+  left.ontouchend = () => { if(dodgeState.touchDir===-1) dodgeState.touchDir=0; };
+  right.ontouchstart = () => { dodgeState.touchDir = 1; };
+  right.ontouchend = () => { if(dodgeState.touchDir===1) dodgeState.touchDir=0; };
+  document.onkeydown = e => { dodgeState.keys[e.key]=true; };
+  document.onkeyup = e => { dodgeState.keys[e.key]=false; };
+
+  const canvas = document.getElementById('dodgeCanvas');
+  let tapX = null;
+  canvas.ontouchstart = e => { tapX = e.touches[0].clientX; e.preventDefault(); };
+  canvas.ontouchmove = e => {
+    const t = e.touches[0];
+    dodgeState.touchDir = t.clientX < window.innerWidth/2 ? -1 : 1;
+    e.preventDefault();
+  };
+  canvas.ontouchend = () => { dodgeState.touchDir = 0; };
+}
+
+function startDodgeTimer() {
+  clearInterval(dodgeState.timerInt);
+  dodgeState.timerInt = setInterval(() => {
+    dodgeState.time--;
+    dodgeState.speed = 1 + (30 - dodgeState.time) * 0.05;
+    document.getElementById('dodgeTime').textContent = dodgeState.time;
+    if (dodgeState.time <= 0) { clearInterval(dodgeState.timerInt); endDodge(true); }
+  }, 1000);
+}
+
+function dodgeLoop() {
+  const canvas = document.getElementById('dodgeCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const s = dodgeState;
+  if (s.over) return;
+
+  // Mover jugador
+  let dx = 0;
+  if (s.keys['ArrowLeft'] || s.keys['a'] || s.touchDir === -1) dx = -1;
+  if (s.keys['ArrowRight'] || s.keys['d'] || s.touchDir === 1) dx = 1;
+  s.playerX += dx * 6;
+  s.playerX = Math.max(20, Math.min(W-20, s.playerX));
+
+  // Spawn enemigos
+  s.enemyTimer++;
+  if (s.enemyTimer >= s.enemyInterval) {
+    s.enemyTimer = 0;
+    s.enemies.push({
+      x: 30 + Math.random()*(W-60), y:-30,
+      emoji: DODGE_ENEMIES[Math.floor(Math.random()*DODGE_ENEMIES.length)],
+      speed: (1.5 + Math.random()*1.5) * s.speed,
+      w: 30
+    });
+  }
+
+  // Spawn powerup
+  s.pwTimer++;
+  if (s.pwTimer >= s.pwInterval) {
+    s.pwTimer = 0;
+    s.powerups.push({
+      x: 30 + Math.random()*(W-60), y:-30,
+      emoji: DODGE_POWERUPS[Math.floor(Math.random()*DODGE_POWERUPS.length)],
+      speed: 2, w: 28
+    });
+  }
+
+  // Shield timer
+  if (s.shield) { s.shieldTime--; if(s.shieldTime<=0) s.shield=false; }
+
+  // Mover enemigos
+  s.enemies.forEach(e => e.y += e.speed);
+  s.enemies = s.enemies.filter(e => {
+    if (e.y > H + 30) {
+      // Esquivado
+      s.score += 5 * (s.combo + 1);
+      s.combo++;
+      s.maxCombo = Math.max(s.maxCombo, s.combo);
+      updateComboDisplay(s.combo, 'dodgeCombo');
+      return false;
+    }
+    return true;
+  });
+
+  // Colisión enemigos
+  s.enemies = s.enemies.filter(e => {
+    const hit = Math.abs(e.x - s.playerX) < 30 && Math.abs(e.y - s.playerY) < 30;
+    if (hit) {
+      if (s.shield) { s.shield = false; playHit(); }
+      else {
+        s.lives--; s.combo = 0;
+        playHit(); updateDodgeHUD();
+        updateComboDisplay(0, 'dodgeCombo');
+        if (s.lives <= 0) { endDodge(false); return false; }
+      }
+      return false;
+    }
+    return true;
+  });
+
+  // Mover powerups
+  s.powerups.forEach(p => p.y += p.speed);
+  s.powerups = s.powerups.filter(p => {
+    if (p.y > H + 30) return false;
+    const hit = Math.abs(p.x - s.playerX) < 30 && Math.abs(p.y - s.playerY) < 30;
+    if (hit) {
+      playCollect();
+      if (p.emoji === '🛡️') { s.shield = true; s.shieldTime = 120; }
+      else if (p.emoji === '⭐') { s.score += 100; }
+      else if (p.emoji === '⚡') { s.score += 50; }
+      else { s.score += 30; }
+      const area = document.getElementById('dodgeArea');
+      spawnFloatText(p.emoji + ' +POW', s.playerX, s.playerY, 'pos', area);
+      return false;
+    }
+    return true;
+  });
+
+  s.score++;
+
+  // ─── DRAW ───
+  ctx.clearRect(0,0,W,H);
+
+  // Fondo
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#020a06'); bg.addColorStop(1,'#051508');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // Estrellas
+  s.bgStars.forEach(st => {
+    st.y += st.v * s.speed * 0.3;
+    if (st.y > H) { st.y = 0; st.x = Math.random()*W; }
+    ctx.fillStyle = 'rgba(0,255,136,0.4)';
+    ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Enemigos
+  ctx.font = '26px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  s.enemies.forEach(e => {
+    ctx.globalAlpha=0.2; ctx.fillStyle='#ff3355';
+    ctx.beginPath(); ctx.arc(e.x,e.y,16,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1; ctx.fillText(e.emoji,e.x,e.y);
+  });
+
+  // Powerups
+  s.powerups.forEach(p => {
+    const glow = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,20);
+    glow.addColorStop(0,'rgba(255,215,0,0.3)'); glow.addColorStop(1,'transparent');
+    ctx.fillStyle=glow; ctx.fillRect(p.x-22,p.y-22,44,44);
+    ctx.fillText(p.emoji,p.x,p.y);
+  });
+
+  // Jugador con shield
+  if (s.shield) {
+    ctx.globalAlpha = 0.3 + Math.sin(Date.now()/100)*0.1;
+    ctx.fillStyle = '#00eeff';
+    ctx.beginPath(); ctx.arc(s.playerX, s.playerY, 28, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 16;
+  ctx.font = '36px serif';
+  ctx.fillText('🧑', s.playerX, s.playerY);
+  ctx.shadowBlur = 0;
+
+  if (!s.over) dodgeAnimId = requestAnimationFrame(dodgeLoop);
+}
+
+function updateComboDisplay(combo, elId) {
+  const el = document.getElementById(elId);
+  if (combo > 1) { el.textContent = `x${combo} COMBO!`; el.style.opacity = '1'; }
+  else { el.style.opacity = '0'; }
+}
+
+function updateDodgeHUD() {
+  document.getElementById('dodgeScore').textContent = dodgeState.score;
+  const lives = document.getElementById('dodgeLives');
+  lives.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const s = document.createElement('span');
+    s.className = 'life-icon' + (i >= dodgeState.lives ? ' lost' : '');
+    s.textContent = '❤️'; lives.appendChild(s);
+  }
+}
+
+function endDodge(win) {
+  dodgeState.over = true;
+  clearInterval(dodgeState.timerInt);
+  cancelAnimationFrame(dodgeAnimId);
+  saveRecord('dodge', dodgeState.score);
+  const area = document.getElementById('dodgeArea');
+  const msg = win
+    ? `¡Sobreviviste 30 segundos!<br>Combo máximo: x${dodgeState.maxCombo} 🔥`
+    : `¡Los contaminantes te derrotaron!<br>Combo máximo: x${dodgeState.maxCombo}`;
+  showModal(area, win, dodgeState.score, 'dodge', msg, () => {
+    setupDodgeCanvas(); resetDodge();
+  });
+  win ? playWin() : playLose();
+}
+
+document.getElementById('dodgeBack').addEventListener('click', () => {
+  dodgeState.over = true;
+  cancelAnimationFrame(dodgeAnimId);
+  clearInterval(dodgeState.timerInt);
+  document.onkeydown = null; document.onkeyup = null;
+  buildMenu(); showScreen('mainMenu');
+});
+
+// ═══════════════════════════════════════════════════════
+// MINIJUEGO 4 — ECO REVERSE DODGE
+// ═══════════════════════════════════════════════════════
+let revState = {};
+let revAnimId = null;
+
+const REV_POSITIVES = ['🌳','💧','♻️','🌱','🦋','🌻','🐝','🌊'];
+const REV_NEGATIVES = ['🛢️','💨','☁️','🗑️','🔥','💀','⚠️'];
+
+function startReverse() {
+  showScreen('reverseDodgeGame');
+  setupRevCanvas();
+  resetReverse();
+}
+
+function setupRevCanvas() {
+  const canvas = document.getElementById('revCanvas');
+  const area = document.getElementById('revArea');
+  canvas.width = area.clientWidth || window.innerWidth;
+  canvas.height = area.clientHeight || window.innerHeight - 60;
+}
+
+function resetReverse() {
+  cancelAnimationFrame(revAnimId);
+  clearInterval(revState.timerInt);
+  const canvas = document.getElementById('revCanvas');
+  const W = canvas.width, H = canvas.height;
+
+  revState = {
+    score: 0, lives: 3, time: 45,
+    playerX: W/2, playerY: H-80,
+    objects: [], combo: 0, maxCombo: 0,
+    objTimer: 0, objInterval: 50,
+    speed: 1, over: false,
+    keys: {}, touchDir: 0,
+    particles: []
+  };
+
+  updateRevHUD();
+  setupRevControls();
+  startRevTimer();
+  revLoop();
+}
+
+function setupRevControls() {
+  const left = document.getElementById('revLeft');
+  const right = document.getElementById('revRight');
+  left.ontouchstart = () => { revState.touchDir=-1; };
+  left.ontouchend = () => { if(revState.touchDir===-1) revState.touchDir=0; };
+  right.ontouchstart = () => { revState.touchDir=1; };
+  right.ontouchend = () => { if(revState.touchDir===1) revState.touchDir=0; };
+  document.onkeydown = e => { revState.keys[e.key]=true; };
+  document.onkeyup = e => { revState.keys[e.key]=false; };
+
+  const canvas = document.getElementById('revCanvas');
+  canvas.ontouchmove = e => {
+    const t = e.touches[0];
+    revState.touchDir = t.clientX < window.innerWidth/2 ? -1 : 1;
+    e.preventDefault();
+  };
+  canvas.ontouchend = () => { revState.touchDir=0; };
+}
+
+function startRevTimer() {
+  clearInterval(revState.timerInt);
+  revState.timerInt = setInterval(() => {
+    revState.time--;
+    revState.speed = 1 + (45 - revState.time) * 0.04;
+    document.getElementById('revTime').textContent = revState.time;
+    if (revState.time <= 0) { clearInterval(revState.timerInt); endReverse(true); }
+  }, 1000);
+}
+
+function revLoop() {
+  const canvas = document.getElementById('revCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const s = revState;
+  if (s.over) return;
+
+  // Mover jugador
+  let dx = 0;
+  if (s.keys['ArrowLeft'] || s.keys['a'] || s.touchDir===-1) dx=-1;
+  if (s.keys['ArrowRight'] || s.keys['d'] || s.touchDir===1) dx=1;
+  s.playerX += dx*6;
+  s.playerX = Math.max(20, Math.min(W-20, s.playerX));
+
+  // Spawn objetos
+  s.objTimer++;
+  if (s.objTimer >= s.objInterval) {
+    s.objTimer = 0;
+    const isPos = Math.random() < 0.5;
+    const emojis = isPos ? REV_POSITIVES : REV_NEGATIVES;
+    s.objects.push({
+      x: 30 + Math.random()*(W-60), y:-30,
+      emoji: emojis[Math.floor(Math.random()*emojis.length)],
+      speed: (1.5+Math.random()*2)*s.speed,
+      positive: isPos, w: 28
+    });
+  }
+
+  // Mover objetos
+  s.objects.forEach(o => o.y += o.speed);
+  s.objects = s.objects.filter(o => {
+    if (o.y > H+30) {
+      if (o.positive) { s.combo=0; updateComboDisplay(0,'revCombo'); } // perdiste positivo
+      return false;
+    }
+    return true;
+  });
+
+  // Colisiones
+  s.objects = s.objects.filter(o => {
+    const hit = Math.abs(o.x-s.playerX)<28 && Math.abs(o.y-s.playerY)<28;
+    if (hit) {
+      const area = document.getElementById('revArea');
+      if (o.positive) {
+        s.score += 40*(s.combo+1);
+        s.combo++; s.maxCombo = Math.max(s.maxCombo,s.combo);
+        playCollect();
+        updateComboDisplay(s.combo,'revCombo');
+        spawnFloatText(`+${40*s.combo}`, s.playerX, s.playerY, 'pos', area);
+        // Partículas
+        for (let i=0;i<6;i++) s.particles.push({
+          x:o.x,y:o.y,vx:(Math.random()-0.5)*4,vy:-(Math.random()*4+1),
+          life:1,col:`hsl(${100+Math.random()*60},100%,60%)`
+        });
+      } else {
+        s.lives--; s.combo=0;
+        playHit(); updateRevHUD();
+        updateComboDisplay(0,'revCombo');
+        spawnFloatText('¡GOLPE!', s.playerX, s.playerY, 'neg', area);
+        if (s.lives<=0) { endReverse(false); return false; }
+      }
+      return false;
+    }
+    return true;
+  });
+
+  // Partículas
+  s.particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.life-=0.04; });
+  s.particles = s.particles.filter(p => p.life>0);
+
+  // ─── DRAW ───
+  ctx.clearRect(0,0,W,H);
+
+  // Fondo animado
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#010d04'); bg.addColorStop(1,'#031508');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Ondas
+  const wt = Date.now()/1000;
+  for (let i=0;i<3;i++) {
+    ctx.beginPath(); ctx.strokeStyle=`rgba(0,255,136,${0.04-i*0.01})`; ctx.lineWidth=1;
+    for (let x=0;x<W;x+=5) {
+      const y = H/2 + Math.sin(x/60+wt+i)*20 + i*40;
+      x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  // Objetos
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='26px serif';
+  s.objects.forEach(o => {
+    if (o.positive) {
+      const gl = ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,20);
+      gl.addColorStop(0,'rgba(0,255,136,0.25)'); gl.addColorStop(1,'transparent');
+      ctx.fillStyle=gl; ctx.fillRect(o.x-22,o.y-22,44,44);
+    } else {
+      ctx.globalAlpha=0.2; ctx.fillStyle='#ff3355';
+      ctx.beginPath(); ctx.arc(o.x,o.y,16,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    ctx.fillText(o.emoji,o.x,o.y);
+  });
+
+  // Partículas
+  s.particles.forEach(p => {
+    ctx.globalAlpha=p.life; ctx.fillStyle=p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  });
+
+  // Jugador
+  ctx.shadowColor='#00ff88'; ctx.shadowBlur=20;
+  ctx.font='38px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('🤲',s.playerX,s.playerY);
+  ctx.shadowBlur=0;
+
+  if (!s.over) revAnimId = requestAnimationFrame(revLoop);
+}
+
+function updateRevHUD() {
+  document.getElementById('revScore').textContent = revState.score;
+  const lives = document.getElementById('revLives');
+  lives.innerHTML='';
+  for (let i=0;i<3;i++) {
+    const sp=document.createElement('span');
+    sp.className='life-icon'+(i>=revState.lives?' lost':'');
+    sp.textContent='❤️'; lives.appendChild(sp);
+  }
+}
+
+function endReverse(win) {
+  revState.over=true;
+  clearInterval(revState.timerInt);
+  cancelAnimationFrame(revAnimId);
+  saveRecord('reverse', revState.score);
+  const area = document.getElementById('revArea');
+  const msg = win
+    ? `¡45 segundos de eco-acción!<br>Combo máximo: x${revState.maxCombo} 🌿`
+    : `¡La contaminación te venció!<br>Combo máximo: x${revState.maxCombo}`;
+  showModal(area, win, revState.score, 'reverse', msg, () => {
+    setupRevCanvas(); resetReverse();
+  });
+  win ? playWin() : playLose();
+}
+
+document.getElementById('revBack').addEventListener('click', () => {
+  revState.over=true;
+  cancelAnimationFrame(revAnimId);
+  clearInterval(revState.timerInt);
+  document.onkeydown=null; document.onkeyup=null;
+  buildMenu(); showScreen('mainMenu');
+});
+
+// ─── MENÚ BACK BUTTONS ──────────────────────────────────
+document.getElementById('recycBack').addEventListener('click', () => {});
+
+// ═══════════════════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════════════════
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function spawnFloatText(text, x, y, type, container) {
+  const el = document.createElement('div');
+  el.className = 'float-text ' + type;
+  el.textContent = text;
+  el.style.left = Math.max(0, x - 30) + 'px';
+  el.style.top = Math.max(0, y - 20) + 'px';
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function showModal(container, win, score, key, msg, onRestart) {
+  // Limpiar modal previo
+  const old = container.querySelector('.modal-overlay');
+  if (old) old.remove();
+
+  const rec = getRecord(key);
+  const isRec = score >= rec && score > 0;
+
+  const div = document.createElement('div');
+  div.className = 'modal-overlay';
+  div.innerHTML = `
+    <div class="modal-box">
+      <span class="modal-icon">${win ? '🏆' : '💀'}</span>
+      <div class="modal-title ${win?'win':'lose'}">${win ? '¡VICTORIA!' : 'GAME OVER'}</div>
+      <div class="modal-score">${score}</div>
+      <div class="modal-record">${isRec ? '🌟 ¡NUEVO RÉCORD!' : '🏆 Récord: ' + rec + ' pts'}</div>
+      <div class="modal-msg">${msg}</div>
+      <div class="modal-btns">
+        <button class="btn-modal primary" id="mRestart">🔄 REINTENTAR</button>
+        <button class="btn-modal secondary" id="mMenu">🏠 MENÚ</button>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+
+  div.querySelector('#mRestart').addEventListener('click', () => {
+    div.remove();
+    document.onkeydown=null; document.onkeyup=null;
+    onRestart();
+  });
+  div.querySelector('#mMenu').addEventListener('click', () => {
+    div.remove();
+    document.onkeydown=null; document.onkeyup=null;
+    buildMenu(); showScreen('mainMenu');
+  });
+}
+
+// ─── TECLAS GLOBALES SPLASH ──────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    const splash = document.getElementById('splash');
+    if (splash.classList.contains('active')) {
+      AC.resume();
+      beep(660,'sine',0.1,0.3);
+      buildMenu(); showScreen('mainMenu');
+    }
+  }
+});
+
+// ─── RESIZE HANDLERS ─────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (document.getElementById('racerGame').classList.contains('active')) {
+    racerState.over = true;
+    cancelAnimationFrame(racerAnimId);
+    setupRacerCanvas(); resetRacer();
+  }
+  if (document.getElementById('dodgeGame').classList.contains('active')) {
+    dodgeState.over = true;
+    cancelAnimationFrame(dodgeAnimId);
+    setupDodgeCanvas(); resetDodge();
+  }
+  if (document.getElementById('reverseDodgeGame').classList.contains('active')) {
+    revState.over = true;
+    cancelAnimationFrame(revAnimId);
+    setupRevCanvas(); resetReverse();
+  }
+});
+
+// ─── PREVENT SCROLL EN MÓVIL ─────────────────────────────
+document.addEventListener('touchmove', e => {
+  if (e.target.closest('.game-area') || e.target.closest('#bgCanvas')) e.preventDefault();
+}, { passive: false });
+
+</script>
 </body>
 </html>

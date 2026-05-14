@@ -590,7 +590,7 @@ function startSnake(W,H){
     nextDir:null,                // null = no hay cambio pendiente
     score:0,lives:3,time:60,maxT:120,
     items:[],frame:0,
-    stepEvery:12,                // pasos más lentos al inicio
+    stepEvery:12,    // ENTERO — frames entre pasos
     parts:[],over:false
   };
   window._SN=_SN;
@@ -598,8 +598,15 @@ function startSnake(W,H){
   document.getElementById('sn_score').textContent=0;
   document.getElementById('sn_size').textContent=1;
   document.getElementById('sn_time').textContent=60;
-  // Spawn 4 items iniciales
-  for(var k=0;k<4;k++)spawnSnakeItem();
+  // Spawn balanceado: mínimo 3 buenos y 2 malos al inicio
+  for(var k=0;k<3;k++){
+    var p1=SN_GOOD[0|Math.random()*SN_GOOD.length];
+    for(var t1=0;t1<80;t1++){var cx1=1+0|Math.random()*(_SN.cols-2),cy1=1+0|Math.random()*(_SN.rows-2);if(!_SN.body.some(function(b){return b.x===cx1&&b.y===cy1;})&&!_SN.items.some(function(i){return i.cx===cx1&&i.cy===cy1;})){_SN.items.push({cx:cx1,cy:cy1,e:p1.e,n:p1.n,good:true,pulse:0});break;}}
+  }
+  for(var k=0;k<2;k++){
+    var p2=SN_BAD[0|Math.random()*SN_BAD.length];
+    for(var t2=0;t2<80;t2++){var cx2=1+0|Math.random()*(_SN.cols-2),cy2=1+0|Math.random()*(_SN.rows-2);if(!_SN.body.some(function(b){return b.x===cx2&&b.y===cy2;})&&!_SN.items.some(function(i){return i.cx===cx2&&i.cy===cy2;})){_SN.items.push({cx:cx2,cy:cy2,e:p2.e,n:p2.n,good:false,pulse:0});break;}}
+  }
   // Timer
   var _stiv=setInterval(function(){
     if(!_SN||_SN.over){clearInterval(_stiv);return;}
@@ -633,10 +640,17 @@ function startSnake(W,H){
 
 function spawnSnakeItem(){
   if(!_SN)return;
+  // Contar buenos y malos actuales
+  var goodCount=_SN.items.filter(function(i){return i.good;}).length;
+  var badCount=_SN.items.filter(function(i){return!i.good;}).length;
+  // Decidir tipo: si no hay buenos, forzar bueno; si no hay malos y hay suficientes buenos, forzar malo
+  var forceGood=goodCount<2;
+  var forceBad=badCount<1&&goodCount>=2;
+  var good=forceGood?true:forceBad?false:Math.random()<0.6;
+  var pool=good?SN_GOOD:SN_BAD,p=pool[0|Math.random()*pool.length];
   for(var t=0;t<80;t++){
     var cx=1+0|Math.random()*(_SN.cols-2),cy=1+0|Math.random()*(_SN.rows-2);
     if(!_SN.body.some(function(b){return b.x===cx&&b.y===cy;})&&!_SN.items.some(function(i){return i.cx===cx&&i.cy===cy;})){
-      var good=Math.random()<.55,pool=good?SN_GOOD:SN_BAD,p=pool[0|Math.random()*pool.length];
       _SN.items.push({cx:cx,cy:cy,e:p.e,n:p.n,good:good,pulse:0});return;
     }
   }
@@ -647,8 +661,10 @@ function snakeLoop(){
   var cv=document.getElementById('snakeCanvas');if(!cv)return;
   var ctx=cv.getContext('2d'),W=G.W,H=G.H;
   G.frame++;
+  // Resetear frame para evitar números muy grandes
+  if(G.frame>100000)G.frame=0;
 
-  // STEP
+  // STEP — stepEvery siempre entero para que % funcione correctamente
   if(G.frame%G.stepEvery===0){
     // Aplicar dirección pendiente
     if(G.nextDir){G.dir={x:G.nextDir.x,y:G.nextDir.y};G.nextDir=null;}
@@ -656,60 +672,68 @@ function snakeLoop(){
     var nx=(head.x+G.dir.x+G.cols)%G.cols;
     var ny=(head.y+G.dir.y+G.rows)%G.rows;
 
-    // Auto-colisión (solo si >2)
-    if(G.body.length>2){
-      var selfHit=false;
-      for(var si=1;si<G.body.length;si++){if(G.body[si].x===nx&&G.body[si].y===ny){selfHit=true;break;}}
-      if(selfHit){
-        SFX.hit();G.lives--;setLives('sn_lives',G.lives,3);
-        G.body=G.body.slice(0,Math.max(1,G.body.length>>1));
-        document.getElementById('sn_size').textContent=G.body.length;
-        if(G.body.length<=1){G.lives--;setLives('sn_lives',G.lives,3);if(G.lives<=0){G.over=true;endSnake(false);return;}}
-        if(G.lives<=0){G.over=true;endSnake(false);return;}
-        window._snRAF=requestAnimationFrame(snakeLoop);return;
+    // Auto-colisión: checar contra todos menos el último segmento
+    // (el último se moverá este frame, así que no cuenta)
+    var selfHit=false;
+    if(G.body.length>1){
+      for(var si=1;si<G.body.length-1;si++){
+        if(G.body[si].x===nx&&G.body[si].y===ny){selfHit=true;break;}
       }
     }
-
-    // Agregar nueva cabeza
-    G.body.unshift({x:nx,y:ny});
-
-    // ¿Come ítem?
-    var eatIdx=-1;
-    for(var ei=0;ei<G.items.length;ei++){if(G.items[ei].cx===nx&&G.items[ei].cy===ny){eatIdx=ei;break;}}
-
-    if(eatIdx>=0){
-      var it=G.items.splice(eatIdx,1)[0];
-      if(it.good){
-        // CRECE: no quitar cola → la serpiente queda 1 más larga
-        G.score+=30;SFX.pick();
-        G.time=Math.min(G.maxT,G.time+5);
-        var stv=document.getElementById('sn_time');if(stv)stv.textContent=G.time;
-        G.stepEvery=Math.max(5,G.stepEvery-.1);
-        for(var pp=0;pp<5;pp++)G.parts.push({x:nx*SN_CELL+SN_CELL/2,y:ny*SN_CELL+SN_CELL/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,col:'#00ff88'});
-      }else{
-        // ENCOGE: quitar cola normal + 2 más
-        G.body.pop();           // quitar cola (movimiento normal)
-        if(G.body.length>1)G.body.pop();  // -1 extra
-        if(G.body.length>1)G.body.pop();  // -2 extra
-        SFX.err();
-        for(var pp=0;pp<5;pp++)G.parts.push({x:nx*SN_CELL+SN_CELL/2,y:ny*SN_CELL+SN_CELL/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,col:'#ff3355'});
-        // Si queda 1 → pierde vida y reset posición
-        if(G.body.length<=1){
-          G.lives--;setLives('sn_lives',G.lives,3);
-          if(G.lives<=0){G.over=true;endSnake(false);return;}
-          G.body=[{x:G.cols>>1,y:G.rows>>1}];G.dir={x:1,y:0};G.nextDir=null;
-        }
-      }
-      document.getElementById('sn_score').textContent=G.score;
+    if(selfHit){
+      SFX.hit();G.lives--;setLives('sn_lives',G.lives,3);
+      G.body=G.body.slice(0,Math.max(1,G.body.length>>1));
       document.getElementById('sn_size').textContent=G.body.length;
-      // Spawn nuevo ítem
-      spawnSnakeItem();if(G.items.length<4)spawnSnakeItem();
-    }else{
-      // Movimiento normal: quitar cola
-      G.body.pop();
+      if(G.lives<=0){G.over=true;endSnake(false);return;}
+      // Continúa el loop normalmente sin return extra
+    } else {
+      // Agregar nueva cabeza
+      G.body.unshift({x:nx,y:ny});
+
+      // ¿Come ítem?
+      var eatIdx=-1;
+      for(var ei=0;ei<G.items.length;ei++){
+        if(G.items[ei].cx===nx&&G.items[ei].cy===ny){eatIdx=ei;break;}
+      }
+
+      if(eatIdx>=0){
+        var it=G.items.splice(eatIdx,1)[0];
+        if(it.good){
+          // CRECE: no quitar cola → serpiente queda 1 más larga
+          G.score+=30; SFX.pick();
+          G.time=Math.min(G.maxT,G.time+5);
+          var stv=document.getElementById('sn_time');if(stv)stv.textContent=G.time;
+          // Acelerar: SIEMPRE entero con Math.max y Math.round
+          G.stepEvery=Math.max(5,Math.round(G.stepEvery)-1);
+          for(var pp=0;pp<5;pp++)G.parts.push({x:nx*SN_CELL+SN_CELL/2,y:ny*SN_CELL+SN_CELL/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,col:'#00ff88'});
+        } else {
+          // ENCOGE: quitar cola + 2 extra
+          G.body.pop();
+          if(G.body.length>1)G.body.pop();
+          if(G.body.length>1)G.body.pop();
+          SFX.err();
+          for(var pp=0;pp<5;pp++)G.parts.push({x:nx*SN_CELL+SN_CELL/2,y:ny*SN_CELL+SN_CELL/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,col:'#ff3355'});
+          if(G.body.length<=1){
+            G.lives--;setLives('sn_lives',G.lives,3);
+            if(G.lives<=0){G.over=true;endSnake(false);return;}
+            G.body=[{x:G.cols>>1,y:G.rows>>1}];G.dir={x:1,y:0};G.nextDir=null;
+          }
+        }
+        document.getElementById('sn_score').textContent=G.score;
+        document.getElementById('sn_size').textContent=G.body.length;
+        spawnSnakeItem();
+        if(G.items.length<4)spawnSnakeItem();
+      } else {
+        // Movimiento normal: quitar cola
+        G.body.pop();
+      }
     }
-    // Mantener mínimo 3 ítems
-    while(G.items.length<3)spawnSnakeItem();
+    // Mantener mínimo 2 buenos + 1 malo siempre visibles
+    var gc=G.items.filter(function(i){return i.good;}).length;
+    var bc=G.items.filter(function(i){return!i.good;}).length;
+    if(gc<2)spawnSnakeItem(); // spawnSnakeItem forzará bueno si gc<2
+    if(bc<1)spawnSnakeItem(); // forzará malo si bc<1
+    if(G.items.length<4)spawnSnakeItem();
   }
 
   // Partículas
